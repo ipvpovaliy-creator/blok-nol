@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Блок·Ноль — крипта для новичков без хайпа{% endblock %}
+{% block content %}
+
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-hash">генезис-блок · старт цепочки уроков</div>
+    <h1>Криптовалюты <em>по одному блоку</em> за раз — без хайпа и обещаний иксов</h1>
+    <p class="lede">Понятные уроки для тех, кто слышал про биткоин, но не разбирается. Ни ракет, ни гарантий дохода — только объяснение, как это устроено на самом деле.</p>
+    <div class="hero-actions">
+      <a class="btn-primary" href="https://t.me/your_channel" target="_blank" rel="noopener">Подписаться в Telegram</a>
+      <a class="btn-ghost" href="#lessons">Смотреть уроки</a>
+    </div>
+  </div>
+</section>
+
+<section class="blocklist" id="lessons">
+  <div class="wrap">
+    <div class="section-label">Цепочка уроков</div>
+    {% for a in lessons %}
+    <div class="block-entry">
+      <div class="block-id"><span class="n">{{ a.block_num }}</span>{{ a.hash }}</div>
+      <div class="block-body">
+        <h3><a href="articles/{{ a.slug }}.html">{{ a.title }}</a></h3>
+        <p>{{ a.excerpt }}</p>
+        <div class="block-meta">
+          <span>{{ a.date }}</span>
+          {% for t in a.tags %}<span class="tag">{{ t }}</span>{% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="blocklist" id="obzory">
+  <div class="wrap">
+    <div class="section-label">Обзоры сервисов</div>
+    {% for a in reviews %}
+    <div class="block-entry">
+      <div class="block-id"><span class="n">{{ a.block_num }}</span>{{ a.hash }}</div>
+      <div class="block-body">
+        <h3><a href="articles/{{ a.slug }}.html">{{ a.title }}</a></h3>
+        <p>{{ a.excerpt }}</p>
+        <div class="block-meta">
+          <span>{{ a.date }}</span>
+          {% for t in a.tags %}<span class="tag">{{ t }}</span>{% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="subscribe" id="podpiska">
+  <div class="wrap subscribe-grid">
+    <div>
+      <h2>Новый блок раз в несколько дней</h2>
+      <p>Разбор новостей, обновления по урокам и обзоры сервисов — без спама и без «сигналов на вход». Подписка в Telegram, отписаться можно в любой момент.</p>
+    </div>
+    <div class="tg-box">
+      <div class="handle">@your_channel</div>
+      <a class="btn-primary" href="https://t.me/your_channel" target="_blank" rel="noopener">Открыть канал</a>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

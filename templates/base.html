@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Блок·Ноль{% endblock %}</title>
+<meta name="description" content="{% block description %}Крипта для новичков: понятные уроки и обзоры без обещаний дохода.{% endblock %}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ root }}assets/style.css">
+</head>
+<body>
+
+<div class="chainbar">
+  <div class="chainbar-inner">
+    <div class="brand">Блок·Ноль <span>чейн для новичков</span></div>
+    <div>{{ chain_hash }}</div>
+  </div>
+</div>
+
+<nav class="mainnav">
+  <div class="wrap">
+    <a href="{{ root }}index.html">Уроки</a>
+    <a href="{{ root }}index.html#obzory">Обзоры</a>
+    <a href="{{ root }}index.html#podpiska">Подписка</a>
+    <a class="cta" href="https://t.me/your_channel" target="_blank" rel="noopener">Telegram-канал</a>
+  </div>
+</nav>
+
+{% block content %}{% endblock %}
+
+<footer>
+  <div class="wrap">
+    <div>© 2026 Блок·Ноль. Материалы носят образовательный характер.</div>
+    <div class="disclaimer">
+      <strong style="color:var(--paper)">Важно:</strong> сайт не даёт индивидуальных инвестиционных рекомендаций и не гарантирует доход. Криптовалюты — высокорисковый актив, стоимость может как расти, так и полностью обнулиться. Все решения вы принимаете самостоятельно и на свой риск. Материалы по биржам и сервисам могут содержать партнёрские ссылки — это отмечено отдельно в каждой статье.
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

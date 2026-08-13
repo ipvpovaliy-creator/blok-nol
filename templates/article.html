@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}{{ a.title }} — Блок·Ноль{% endblock %}
+{% block description %}{{ a.excerpt }}{% endblock %}
+{% block content %}
+
+<header class="article-header">
+  <div class="wrap">
+    <div class="hero-hash">блок {{ a.block_num }} · {{ a.hash }} · {{ a.date }}</div>
+    <h1>{{ a.title }}</h1>
+    <div class="article-meta">
+      {% for t in a.tags %}<span class="tag">{{ t }}</span>{% endfor %}
+    </div>
+  </div>
+</header>
+
+<article class="article-body">
+  <div class="wrap">
+    {{ a.body_html|safe }}
+
+    {% if a.affiliate %}
+    <div class="affiliate-card">
+      <div>
+        <p class="name">{{ a.affiliate.name }}</p>
+        <p class="note">{{ a.affiliate.note }}</p>
+      </div>
+      <a class="btn-primary" href="{{ a.affiliate.url }}" target="_blank" rel="noopener sponsored">{{ a.affiliate.cta }}</a>
+    </div>
+    {% endif %}
+
+    <div class="disclosure-box">
+      <strong>Дисклеймер.</strong> {{ a.disclosure }}
+    </div>
+  </div>
+</article>
+
+{% endblock %}
