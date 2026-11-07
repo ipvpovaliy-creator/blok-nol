@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /templates/
+Disallow: /*.py$
+Disallow: /*.zip$
+Disallow: /articles.json
+
+Sitemap: https://bloknol.ru/sitemap.xml
