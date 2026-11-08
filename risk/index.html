@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Риск-профилировщик | Risk Profiler</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+:root{
+  --navy:#0d1f3c;--navy2:#162d52;--navy3:#1e3a6e;
+  --gold:#c9a84c;--gold2:#e8c96a;--gold3:#f5e199;
+  --sky:#4a9fd4;--sky2:#7bbee8;--sky3:#b8daf5;--sky4:#dceefa;--sky5:#eef6fd;
+  --white:#ffffff;--text:#0d1f3c;--text2:#2a4a7f;--text3:#4a6fa5;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:linear-gradient(135deg,#0d1f3c 0%,#162d52 40%,#1a3a6a 70%,#0d2a4a 100%);min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:2rem 1rem;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+.app{background:var(--sky5);width:100%;max-width:700px;border-radius:24px;padding:0;color:var(--text);box-shadow:0 24px 64px rgba(0,0,0,.45),0 0 0 1px rgba(201,168,76,.18);overflow:hidden}
+.top-bar{background:linear-gradient(90deg,var(--navy) 0%,var(--navy2) 100%);display:flex;justify-content:space-between;align-items:center;padding:1rem 1.75rem;border-bottom:2px solid var(--gold)}
+.app-title{font-size:16px;font-weight:700;color:var(--white);letter-spacing:.04em;display:flex;align-items:center;gap:10px}
+.app-title-icon{width:28px;height:28px;background:linear-gradient(135deg,var(--gold),var(--gold2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.content{padding:1.75rem}
+.progress-wrap{margin-bottom:1.5rem}
+.progress-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.progress-label{font-size:12px;font-weight:600;color:var(--text3);letter-spacing:.05em;text-transform:uppercase}
+.progress-count{font-size:12px;font-weight:700;color:var(--gold)}
+.progress-bg{background:var(--sky3);border-radius:99px;height:6px}
+.progress-fill{background:linear-gradient(90deg,var(--sky),var(--gold));height:6px;border-radius:99px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.qcard{background:var(--white);border:1.5px solid var(--sky3);border-radius:16px;padding:1.5rem;margin-bottom:1.25rem;box-shadow:0 2px 12px rgba(13,31,60,.06)}
+.qnum{font-size:10px;font-weight:700;color:var(--gold);letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px}
+.qsub{font-size:12px;color:var(--text3);margin-bottom:1rem;line-height:1.5;font-style:italic;background:var(--sky4);border-radius:8px;padding:8px 12px;border-left:3px solid var(--sky2)}
+.qtext{font-size:16px;font-weight:600;color:var(--text);line-height:1.5;margin-bottom:1.25rem}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{background:var(--sky5);border:1.5px solid var(--sky3);border-radius:12px;padding:.75rem 1rem;text-align:left;cursor:pointer;font-size:14px;color:var(--text);line-height:1.4;width:100%;font-family:inherit;font-weight:500;transition:all .15s;display:flex;align-items:center;gap:10px}
+.opt::before{content:'';width:18px;height:18px;min-width:18px;border-radius:50%;border:2px solid var(--sky2);transition:all .15s}
+.opt:hover{background:var(--sky4);border-color:var(--sky);transform:translateX(2px)}
+.opt.sel{background:linear-gradient(90deg,var(--navy),var(--navy2));border-color:var(--gold);color:var(--white);transform:translateX(2px)}
+.opt.sel::before{background:var(--gold);border-color:var(--gold)}
+.scale-wrap{display:flex;flex-direction:column;gap:12px}
+.scale-labels{display:flex;justify-content:space-between;font-size:12px;color:var(--text3);font-weight:500}
+.scale-btns{display:flex;gap:6px;flex-wrap:wrap}
+.scale-btn{width:50px;height:50px;border-radius:12px;border:1.5px solid var(--sky3);background:var(--sky5);font-size:15px;font-weight:700;color:var(--text3);cursor:pointer;font-family:inherit;transition:all .15s}
+.scale-btn:hover{background:var(--sky4);border-color:var(--sky);color:var(--navy)}
+.scale-btn.sel{background:linear-gradient(135deg,var(--navy),var(--navy2));border-color:var(--gold);color:var(--gold2);box-shadow:0 2px 8px rgba(13,31,60,.2)}
+.num-wrap{display:flex;flex-direction:column;gap:8px}
+.num-wrap label{font-size:13px;color:var(--text3);font-weight:500}
+.num-wrap input{background:var(--white);border:1.5px solid var(--sky3);border-radius:12px;padding:.7rem 1rem;font-size:16px;color:var(--text);width:100%;outline:none;font-family:inherit;font-weight:500;transition:border-color .15s}
+.num-wrap input:focus{border-color:var(--sky);box-shadow:0 0 0 3px rgba(74,159,212,.15)}
+.nav{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.btn-back{background:transparent;color:var(--text3);border:1.5px solid var(--sky3);border-radius:12px;padding:.6rem 1.25rem;font-size:14px;cursor:pointer;font-weight:600;font-family:inherit;transition:all .15s}
+.btn-back:hover{background:var(--sky4);color:var(--navy)}
+.btn-back:disabled{opacity:.3;cursor:default}
+.btn-next{background:linear-gradient(135deg,var(--navy),var(--navy2));color:var(--white);border:none;border-radius:12px;padding:.6rem 1.75rem;font-size:14px;cursor:pointer;font-weight:700;font-family:inherit;border-bottom:2px solid var(--gold);transition:all .15s}
+.btn-next:hover{opacity:.9;transform:translateY(-1px)}
+.btn-next:disabled{opacity:.3;cursor:default;transform:none}
+.welcome-hero{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);padding:2.5rem 2rem 2rem;text-align:center;position:relative;overflow:hidden}
+.welcome-hero::before{content:'';position:absolute;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(201,168,76,.12),transparent 70%);top:-80px;right:-60px}
+.welcome-hero::after{content:'';position:absolute;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(74,159,212,.1),transparent 70%);bottom:-60px;left:-40px}
+.welcome-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);border-radius:99px;padding:4px 14px;font-size:11px;font-weight:700;color:var(--gold2);letter-spacing:.08em;text-transform:uppercase;margin-bottom:1.25rem}
+.welcome-title{font-size:26px;font-weight:700;color:var(--white);margin-bottom:.6rem;line-height:1.25}
+.welcome-title span{color:var(--gold2)}
+.welcome-sub{font-size:14px;color:rgba(255,255,255,.65);line-height:1.7;max-width:380px;margin:0 auto 1.75rem}
+.welcome-chips{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.chip{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:99px;padding:5px 14px;font-size:12px;color:rgba(255,255,255,.75);font-weight:500}
+.welcome-body{padding:1.75rem}
+.welcome-field-label{font-size:13px;font-weight:600;color:var(--text3);margin-bottom:.6rem}
+.welcome-input{background:var(--white);border:2px solid var(--sky3);border-radius:14px;padding:.8rem 1.1rem;font-size:16px;color:var(--text);width:100%;outline:none;font-family:inherit;font-weight:500;transition:all .15s;margin-bottom:1rem}
+.welcome-input:focus{border-color:var(--sky);box-shadow:0 0 0 4px rgba(74,159,212,.12)}
+.welcome-input::placeholder{color:var(--sky2)}
+.welcome-start{background:linear-gradient(135deg,var(--gold) 0%,var(--gold2) 100%);color:var(--navy);border:none;border-radius:14px;padding:.85rem 2rem;font-size:15px;cursor:pointer;font-weight:700;font-family:inherit;width:100%;box-shadow:0 4px 16px rgba(201,168,76,.35);transition:all .2s;letter-spacing:.02em}
+.welcome-start:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(201,168,76,.45)}
+.welcome-start:disabled{opacity:.35;cursor:default;transform:none;box-shadow:none}
+.res-hero{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);padding:1.5rem 1.75rem;border-bottom:2px solid var(--gold)}
+.res-greeting-line{font-size:13px;color:var(--gold2);font-weight:600;margin-bottom:4px}
+.res-profile-name{font-size:22px;font-weight:700;color:var(--white);margin-bottom:8px}
+.res-badge-row{display:flex;align-items:center;gap:10px}
+.res-badge{display:inline-block;border-radius:99px;padding:4px 16px;font-size:12px;font-weight:700;border:1.5px solid var(--gold);color:var(--gold2);background:rgba(201,168,76,.12);letter-spacing:.05em;text-transform:uppercase}
+.res-body{padding:1.5rem 1.75rem}
+.res-desc{font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:1rem;padding:1rem;background:var(--white);border-radius:12px;border-left:3px solid var(--gold)}
+.section-head{font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.1em;text-transform:uppercase;margin:1.25rem 0 .6rem;display:flex;align-items:center;gap:8px}
+.section-head::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--sky3),transparent)}
+.params-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.25rem}
+.param-item{background:var(--white);border:1px solid var(--sky3);border-radius:12px;padding:.75rem 1rem}
+.param-key{font-size:11px;color:var(--text3);font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px}
+.param-val{font-size:15px;font-weight:700;color:var(--text)}
+.risk-meter-wrap{background:var(--white);border:1px solid var(--sky3);border-radius:12px;padding:1rem 1.25rem}
+.meter-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--text3);font-weight:600;margin-bottom:8px}
+.meter-track{height:10px;background:linear-gradient(90deg,#5dcaa5,#fac775,#f09595,#e24b4a);border-radius:99px;position:relative}
+.meter-pin{position:absolute;top:-5px;width:20px;height:20px;background:var(--navy);border:2.5px solid var(--gold);border-radius:50%;transform:translateX(-50%);box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.meter-pct{text-align:center;font-size:20px;font-weight:700;color:var(--navy);margin-top:10px}
+.chart-block{display:flex;gap:1.5rem;align-items:center;background:var(--white);border:1px solid var(--sky3);border-radius:12px;padding:1.25rem;flex-wrap:wrap}
+.chart-wrap{flex:0 0 auto;position:relative;width:160px;height:160px}
+.chart-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none}
+.chart-center-pct{font-size:24px;font-weight:700;color:var(--navy)}
+.chart-center-lbl{font-size:11px;color:var(--text3);font-weight:500}
+.legend{flex:1;min-width:140px;display:flex;flex-direction:column;gap:8px}
+.legend-item{display:flex;align-items:center;gap:10px}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.legend-txt{font-size:13px;color:var(--text);flex:1;font-weight:500}
+.legend-pct{font-size:13px;font-weight:700;color:var(--navy)}
+.strat-list{list-style:none;padding:0;display:flex;flex-direction:column;gap:8px}
+.strat-list li{font-size:13px;color:var(--text2);padding:.65rem .85rem;line-height:1.6;background:var(--white);border-radius:10px;border:1px solid var(--sky3);font-weight:400;border-left:3px solid var(--sky2)}
+.rec-block{display:flex;flex-direction:column;gap:8px}
+.rec-item{background:var(--white);border:1px solid var(--sky3);border-radius:12px;padding:.85rem 1rem;display:flex;gap:12px;align-items:flex-start}
+.rec-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--navy),var(--navy2));display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:17px;box-shadow:0 2px 8px rgba(13,31,60,.2)}
+.rec-head{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:3px}
+.rec-text{font-size:13px;color:var(--text3);line-height:1.55}
+.warn-box{background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.25);border-radius:12px;padding:.85rem 1rem;font-size:12px;color:var(--text3);line-height:1.5;margin-top:1rem}
+.breakdown-wrap{display:flex;flex-direction:column;gap:10px;margin-top:.25rem}
+.bk-class{background:var(--white);border:1px solid var(--sky3);border-radius:12px;overflow:hidden}
+.bk-header{display:flex;align-items:center;gap:10px;padding:.65rem 1rem;background:var(--sky5);border-bottom:1px solid var(--sky3)}
+.bk-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+.bk-class-name{font-size:13px;font-weight:700;color:var(--navy);flex:1}
+.bk-class-pct{font-size:14px;font-weight:700;color:var(--gold)}
+.bk-rows{padding:.4rem 0}
+.bk-row{display:flex;align-items:center;gap:8px;padding:.35rem 1rem .35rem 2.25rem;position:relative}
+.bk-row::before{content:'';position:absolute;left:1rem;top:50%;transform:translateY(-50%);width:5px;height:5px;border-radius:50%;background:var(--sky2)}
+.bk-sub-name{font-size:13px;color:var(--text2);flex:1;line-height:1.4}
+.bk-bar-wrap{width:80px;height:5px;background:var(--sky4);border-radius:99px;flex-shrink:0}
+.bk-bar{height:5px;border-radius:99px;background:linear-gradient(90deg,var(--sky),var(--navy2))}
+.bk-sub-pct{font-size:12px;font-weight:700;color:var(--text3);min-width:32px;text-align:right}
+.action-btns{display:flex;gap:10px;padding:0 1.75rem 1.75rem}
+.download-btn{background:linear-gradient(135deg,var(--gold) 0%,var(--gold2) 100%);color:var(--navy);border:none;border-radius:12px;padding:.7rem 1.5rem;font-size:14px;cursor:pointer;font-weight:700;font-family:inherit;flex:1;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 3px 12px rgba(201,168,76,.3);transition:all .2s}
+.download-btn:hover{transform:translateY(-2px);box-shadow:0 5px 18px rgba(201,168,76,.4)}
+.restart-btn{background:transparent;border:1.5px solid var(--sky3);color:var(--text2);border-radius:12px;padding:.7rem 1.25rem;font-size:14px;cursor:pointer;font-weight:600;font-family:inherit;flex:1;transition:all .15s}
+.restart-btn:hover{background:var(--sky4);border-color:var(--sky)}
+@media print{body{background:#fff;padding:0}.app{box-shadow:none;border-radius:0;max-width:100%}.top-bar,.action-btns{display:none}.res-hero{-webkit-print-color-adjust:exact;print-color-adjust:exact}.meter-track,.meter-pin,.legend-dot,.rec-icon{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+@media(max-width:500px){body{padding:.75rem .5rem}.content{padding:1.25rem}.scale-btn{width:42px;height:42px;font-size:13px}.chart-block{flex-direction:column;align-items:flex-start}.params-grid{grid-template-columns:1fr}.action-btns{flex-direction:column;padding:0 1.25rem 1.25rem}.res-hero,.res-body{padding:1.25rem}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top-bar">
+    <div class="app-title">
+      <div class="app-title-icon">📊</div>
+      <span id="app-title">Риск-профилировщик</span>
+    </div>
+  </div>
+  <div id="welcome-section"></div>
+  <div id="quiz-section" style="display:none"></div>
+  <div id="result-section" style="display:none"></div>
+</div>
+<script>
+const COLORS=['#0d1f3c','#4a9fd4','#c9a84c','#7bbee8','#5dcaa5','#e8a84c','#b8daf5'];
+const T={appTitle:'Риск-профилировщик',qLabel:'Вопрос',of:'из',back:'← Назад',next:'Далее →',finish:'Получить результат →',yourProfile:'Ваш риск-профиль',strategy:'Стратегия',allocation:'Структура портфеля',tools:'Инвестиционные инструменты',recTitle:'Что стоит учесть с таким профилем',disclaimer:'Результат теста носит ознакомительный и обучающий характер и не является индивидуальной инвестиционной рекомендацией. Примеры портфелей и инструментов показаны для иллюстрации, это не предложение купить конкретные бумаги. Цифры доходности меняются — проверяйте актуальные данные у брокера и на сайте Мосбиржи. Перед решением о вложениях проконсультируйтесь с инвестиционным советником из реестра Банка России. Перед принятием решений проконсультируйтесь с финансовым советником.',lowRisk:'Низкий',highRisk:'Высокий',years:'лет',scoreLbl:'Уровень риска',investor:'инвестор',params:'Параметры профиля',age:'Возраст',horizon:'Горизонт',welcomeTag:'Инвестиционный советник',welcomeTitle:'Ваш персональный',welcomeTitle2:'риск-профиль',welcomeSub:'Пройдите короткий опрос и получите инвестиционную стратегию, подобранную именно под вас.',welcomeLabel:'Как вас зовут?',welcomePlaceholder:'Введите ваше имя',welcomeStart:'Начать опрос →',step1:'11 вопросов',step2:'≈ 5 минут',step3:'Персональный результат',greetingPrefix:'Здравствуйте,',downloadPdf:'Скачать результат',restartBtn:'Пройти заново'};
+const questions=[
+    {id:'age',type:'number',text:'Сколько вам лет?',label:'Введите возраст',min:18,max:90},
+    {id:'capital',type:'number',text:'Какую сумму вы планируете инвестировать (₽)?',label:'Сумма в рублях',min:10000,max:999999999},
+    {id:'goal',type:'choice',text:'Какова ваша главная инвестиционная цель?',options:[{t:'Сохранить капитал от инфляции',v:0},{t:'Получать стабильный пассивный доход',v:1},{t:'Умеренный рост с контролем риска',v:2},{t:'Максимальный прирост капитала',v:3}]},
+    {id:'horizon',type:'choice',text:'На какой срок вы готовы вложить деньги?',options:[{t:'До 1 года',v:0},{t:'1–3 года',v:1},{t:'3–7 лет',v:2},{t:'7–15 лет',v:3},{t:'Более 15 лет',v:4}]},
+    {id:'scenario1',type:'choice',sub:'Сценарный вопрос: представьте реальную ситуацию',text:'Ваш портфель за два месяца просел на 20%. Что вы сделаете?',options:[{t:'Продам всё — сохраню то, что осталось',v:0},{t:'Продам часть, чтобы снизить риск',v:1},{t:'Ничего не буду делать — подожду восстановления',v:2},{t:'Докуплю активы — хорошая точка входа',v:3}]},
+    {id:'scenario2',type:'choice',sub:'Сценарный вопрос: ситуация в жизни',text:'Вам неожиданно понадобились деньги из инвестиционного счёта. Как вы поступите?',options:[{t:'Выведу всё — деньги дороже дохода',v:0},{t:'Выведу только необходимый минимум',v:1},{t:'Возьму кредит — не буду трогать портфель',v:2},{t:'У меня есть подушка безопасности отдельно',v:3}]},
+    {id:'experience',type:'choice',text:'Каков ваш опыт в инвестициях?',options:[{t:'Нет опыта — только начинаю',v:0},{t:'Базовый — вклады и накопительные счета',v:1},{t:'Средний — акции и облигации на Мосбирже',v:2},{t:'Продвинутый — деривативы, структурные продукты',v:3}]},
+    {id:'volatility',type:'scale',text:'Насколько комфортно вы переносите колебания портфеля?',scaleMin:'Очень некомфортно',scaleMax:'Абсолютно спокойно'},
+    {id:'income_stable',type:'scale',text:'Насколько стабилен ваш текущий доход?',scaleMin:'Очень нестабилен',scaleMax:'Полностью стабилен'},
+    {id:'priority',type:'choice',text:'Что для вас важнее в первую очередь?',options:[{t:'Надёжность и предсказуемость',v:0},{t:'Баланс между ростом и защитой',v:1},{t:'Долгосрочный рост капитала',v:2},{t:'Участие в новых рынках и инновациях',v:3}]},
+    {id:'liquidity',type:'scale',text:'Если вам срочно понадобятся деньги, насколько важно получить их быстро (например, в тот же день или на следующий)?',scaleMin:'Совсем не важно',scaleMax:'Критически важно'}
+];
+const profileDefs=[
+    {name:'Консервативный',tag:'ЗАЩИТНЫЙ',desc:'Вы ставите сохранность капитала выше доходности. Предпочитаете надёжные инструменты с предсказуемым результатом и минимальной волатильностью.',badge:'rgba(201,168,76,.15)',bColor:'#c9a84c',minS:0,
+     alloc:[{l:'Облигации',p:60},{l:'Кэш',p:20},{l:'Акции',p:10},{l:'Драгметаллы',p:5},{l:'Альтернативы',p:5}],
+     breakdown:[
+       {cls:'1. Акции — 10%',p:10,color:'#0d1f3c',subs:[
+         {n:'Дивидендные голубые фишки (Сбер, Лукойл, Норникель)',p:10}]},
+       {cls:'2. Облигации — 60%',p:60,color:'#4a9fd4',subs:[
+         {n:'ОФЗ — государственный долг (фиксир. купон)',p:35},
+         {n:'Корпоративные A+/AAA (Сбер, Газпром, РЖД)',p:15},
+         {n:'Муниципальные облигации субъектов РФ',p:10}]},
+       {cls:'3. Альтернативы — 5%',p:5,color:'#c9a84c',subs:[
+         {n:'Структурные облигации (частичная защита капитала)',p:5}]},
+       {cls:'4. Драгоценные металлы — 5%',p:5,color:'#e8c96a',subs:[
+         {n:'БПИФ на золото (TGLD, GOLD) на Мосбирже',p:2},
+         {n:'ОМС (обезличенный металлический счёт)',p:2},
+         {n:'Покупка металла напрямую у брокера на бирже',p:1}]},
+       {cls:'5. Кэш — 20%',p:20,color:'#7bbee8',subs:[
+         {n:'Накопительный счёт (застрахован АСВ до 1,4 млн ₽)',p:12},
+         {n:'БПИФ денежного рынка (ежедневная ликвидность)',p:8}]}
+     ],
+     strats:[
+       '📌 ОФЗ (облигации федерального займа) — долговые бумаги Минфина РФ с фиксированным купоном. Самый надёжный рублёвый инструмент: государство гарантирует выплаты. Пример: ОФЗ-ПД 26238 с погашением в 2041 г., купон ~7,1% годовых. Покупаются на Мосбирже через любого брокера от 1 000 ₽.',
+       '📌 Корпоративные облигации рейтинга A+/AAA (по АКРА) — долговые бумаги крупнейших компаний. Доходность выше ОФЗ на 1–2%. Примеры: Сбер-001Р-SBRF, Газпром капитал, РЖД. Риск — кредитный, минимален при высоком рейтинге. Смотреть на ruaaa/ruaa+ по шкале АКРА или Эксперт РА.',
+       '📌 Накопительный счёт / банковский вклад — застрахован АСВ до 1,4 млн ₽ на человека в одном банке. Ставка привязана к ключевой ставке ЦБ. Примеры: накопительные счета Сбера, Т-Банка, ВТБ со ставками ставками, которые зависят от ключевой ставки ЦБ. Вклад менее ликвиден — штраф за досрочное снятие.',
+       '📌 БПИФ денежного рынка — биржевой фонд, вкладывающий в однодневное РЕПО с ЦБ. Фактически — аналог вклада с ежедневной ликвидностью и доходностью ~ключевой ставки минус 0,5%. Примеры: LQDT (ВИМ), SBMM (Сбер), AKMM (Альфа). Продаётся в торговый день без потери дохода.',
+       '📌 Дивидендные акции голубых фишек — акции крупнейших компаний с историей выплат. Дивиденды снижают волатильность и дают дополнительный денежный поток. Примеры: Сбер (регулярные дивиденды), Лукойл , Норникель. Доля до 10% — для умеренного роста без высокого риска.',
+       '📌 Золото через БПИФ или ОМС — защита от инфляции и девальвации рубля. БПИФ на золото (TGLD от Т-Банка, GOLD от ВИМ) торгуются на Мосбирже в рублях, привязаны к цене металла на LBMA. ОМС открывается в банке — без НДС, без хранения, но без страховки АСВ.'
+     ],
+     recs:[{icon:'🛡',head:'Сформируйте подушку безопасности',text:'Держите 3–6 месячных расходов в БПИФ денежного рынка или накопительном счёте — ликвиднее вклада и надёжнее наличных.'},{icon:'📊',head:'Диверсифицируйте по эмитентам',text:'Не кладите всё в один банк или один выпуск облигаций. Минимум 5–7 позиций с разными кредитными рейтингами.'},{icon:'🔄',head:'Контролируйте рейтинги эмитентов',text:'Следите за рейтингами АКРА и Эксперт РА. При понижении рейтинга ниже А — рассмотрите замену бумаги.'},{icon:'📈',head:'Реинвестируйте купоны',text:'Направляйте купоны и дивиденды обратно в портфель — запускает эффект сложного процента даже при консервативной стратегии.'}]},
+    {name:'Умеренно-консервативный',tag:'СБАЛАНСИРОВАННЫЙ',desc:'Вы допускаете небольшие колебания ради чуть большей доходности. Открыты к умеренному росту при наличии защитного ядра.',badge:'rgba(74,159,212,.15)',bColor:'#4a9fd4',minS:7,
+     alloc:[{l:'Акции',p:30},{l:'Облигации',p:48},{l:'Драгметаллы',p:8},{l:'Кэш',p:9},{l:'Альтернативы',p:5}],
+     breakdown:[
+       {cls:'1. Акции — 30%',p:30,color:'#0d1f3c',subs:[
+         {n:'Дивидендные голубые фишки (Лукойл, МТС, Татнефть)',p:20},
+         {n:'БПИФ на дивидендные акции Мосбиржи',p:10}]},
+       {cls:'2. Облигации — 48%',p:48,color:'#4a9fd4',subs:[
+         {n:'ОФЗ',p:18},
+         {n:'Корпоративные A+ (Лукойл, Новатэк)',p:15},
+         {n:'Флоатеры (плавающий купон, защита от роста ставки)',p:10},
+         {n:'Муниципальные',p:5}]},
+       {cls:'3. Альтернативы — 5%',p:5,color:'#c9a84c',subs:[
+         {n:'Структурные облигации с частичной защитой капитала',p:5}]},
+       {cls:'4. Драгоценные металлы — 8%',p:8,color:'#e8c96a',subs:[
+         {n:'БПИФ на золото (TGLD, GOLD)',p:3},
+         {n:'ОМС (обезличенный металлический счёт) — золото',p:2},
+         {n:'Покупка золота/серебра у брокера на бирже',p:2},
+         {n:'Физический металл (монеты, слитки)',p:1}]},
+       {cls:'5. Кэш — 9%',p:9,color:'#7bbee8',subs:[
+         {n:'БПИФ денежного рынка',p:6},
+         {n:'Накопительный счёт',p:3}]}
+     ],
+     strats:[
+       '📌 Дивидендные акции — акции компаний, стабильно выплачивающих высокие дивиденды. Менее волатильны, чем акции роста. Примеры: Лукойл (история стабильных дивидендов), МТС (высокая дивидендная история), Татнефть , Новатэк. БПИФ на дивидендные акции: DIVD (УК Доход) — автоматическая диверсификация по всем дивидендным эмитентам Мосбиржи.',
+       '📌 ОФЗ и корпоративные облигации — ядро защитной части портфеля. ОФЗ с постоянным купоном (ПД) — для стабильного дохода. Корпоративные облигации A+ (Лукойл, Новатэк, Магнит) дают на 1,5–2% выше ОФЗ. БПИФ на облигации: SBGB (Сбер, гос. облигации), SBRB (Сбер, корпоративные) — удобно для небольших сумм.',
+       '📌 Флоатеры (облигации с плавающим купоном) — купон привязан к ключевой ставке ЦБ или RUONIA. При росте ставки доходность растёт вместе с ней — защита от процентного риска. Примеры: ОФЗ-ПК 24021, корпоративные флоатеры Сбера, РЖД, Газпрома. Особенно актуальны в периоды высокой ключевой ставки.',
+       '📌 БПИФ на золото — биржевой фонд, привязанный к цене золота на мировом рынке (LBMA). Торгуется в рублях на Мосбирже. Примеры: TGLD (Т-Банк, один из крупнейших золотых БПИФ), GOLD (ВИМ Инвестиции). Комиссия 0,5–0,9% в год. Идеальный инструмент для хеджирования: растёт при ослаблении рубля и геополитических рисках.',
+       '📌 Структурные облигации с защитой капитала — выпускаются банками (Сбер, ВТБ, Газпромбанк). Гарантируют возврат 80–100% капитала при погашении, плюс условная доходность, привязанная к росту индекса или акции. Подходят для снижения риска при желании участвовать в росте рынка. Важно читать условия: есть барьеры и ограничения.',
+       '📌 Муниципальные облигации (субфедеральные) — облигации субъектов РФ (Москва, Санкт-Петербург, Московская обл.). По надёжности близки к ОФЗ, доходность на 0,5–1% выше. Примеры: Москва-2030, МосОбл-34014. Ликвидность ниже ОФЗ, но для долгосрочного держания — отличный вариант.'
+     ],
+     recs:[{icon:'⚖️',head:'Балансируйте защиту и рост',text:'Держите ~50% в облигациях как страховку и наращивайте долю акций постепенно, по мере роста опыта и уверенности.'},{icon:'💰',head:'Выбирайте дивидендные акции',text:'Лукойл, Татнефть, Норникель — компании с историей стабильных дивидендов менее волатильны и дают регулярный денежный поток.'},{icon:'🥇',head:'Используйте золото через БПИФ',text:'8% в драгметаллах — разумный хедж. БПИФ удобен, ОМС позволяет докупать любые суммы, физический металл — долгосрочный резерв.'},{icon:'🔄',head:'Ребалансируйте раз в полгода',text:'Восстанавливайте целевые доли при отклонении актива более чем на 5%. Используйте новые взносы — это дешевле продажи.'}]},
+    {name:'Умеренный',tag:'РОСТОВОЙ',desc:'Вы ищете баланс между ростом и стабильностью. Готовы к умеренным просадкам ради долгосрочного прироста капитала.',badge:'rgba(74,159,212,.2)',bColor:'#7bbee8',minS:13,
+     alloc:[{l:'Акции',p:50},{l:'Облигации',p:28},{l:'Альтернативы',p:10},{l:'Драгметаллы',p:7},{l:'Кэш',p:5}],
+     breakdown:[
+       {cls:'1. Акции — 50%',p:50,color:'#0d1f3c',subs:[
+         {n:'Дивидендные (Лукойл, Сбер, Татнефть)',p:20},
+         {n:'Акции роста (Яндекс, Позитив, Астра)',p:20},
+         {n:'БПИФ на индекс МосБиржи (SBMX/TMOS)',p:10}]},
+       {cls:'2. Облигации — 28%',p:28,color:'#4a9fd4',subs:[
+         {n:'ОФЗ',p:8},
+         {n:'Корпоративные A+ (2–5 лет)',p:12},
+         {n:'Муниципальные субъектов РФ',p:5},
+         {n:'Флоатеры',p:3}]},
+       {cls:'3. Альтернативы — 10%',p:10,color:'#c9a84c',subs:[
+         {n:'ЗПИФ недвижимости (рентный доход)',p:5},
+         {n:'БПИФ на товарные активы (нефть, металлы)',p:3},
+         {n:'Структурные облигации (частичная защита)',p:2}]},
+       {cls:'4. Драгоценные металлы — 7%',p:7,color:'#e8c96a',subs:[
+         {n:'БПИФ на золото (TGLD/GOLD)',p:3},
+         {n:'ОМС — золото и серебро',p:2},
+         {n:'Покупка напрямую у брокера на бирже',p:2}]},
+       {cls:'5. Кэш — 5%',p:5,color:'#7bbee8',subs:[
+         {n:'БПИФ денежного рынка',p:3},
+         {n:'Накопительный счёт',p:2}]}
+     ],
+     strats:[
+       '📌 БПИФ на индекс МосБиржи — фонд, копирующий состав индекса МосБиржи (топ-50 акций). Одним инструментом покупаете весь российский рынок. Примеры: SBMX (Сбер, комиссия 1%), TMOS (Т-Банк, 0,79%), EQMX (ВИМ, 0,69%). Оптимален для регулярных инвестиций методом DCA — усредняете цену входа.',
+       '📌 Акции роста — акции компаний с высоким темпом роста выручки и прибыли. Риск выше, но потенциал кратный при горизонте 5+ лет. Примеры на Мосбирже: Яндекс (IT), Позитив Технологии (кибербезопасность), Астра (отечественное ПО), Ozon (e-commerce). Важно оценивать мультипликаторы: P/E, EV/EBITDA.',
+       '📌 Корпоративные облигации A+ (2–5 лет) — баланс доходности и риска в облигационной части. На 2–3% выше ОФЗ при умеренном риске. Примеры: Магнит 003P-01, Ростелеком-1P-03R, Самолёт ГК (осторожно — рейтинг BB+). Выбирайте эмитентов с рейтингом не ниже A по шкале АКРА.',
+       '📌 ЗПИФ недвижимости — закрытые паевые фонды, вкладывающие в коммерческую или складскую недвижимость. Дают рентный доход (6–10% годовых) без необходимости покупать объект. Примеры на Мосбирже: ЗПИФ "Рентал ПРО" (склады), "ПНК-Рентал". Низкая корреляция с рынком акций — снижает общий риск портфеля.',
+       '📌 БПИФ на товарные активы — фонды, привязанные к ценам на сырьё: нефть, металлы, газ. Защищают портфель при росте инфляции, т.к. сырьё дорожает вместе с ценами. Примеры: БПИФ на нефть, БПИФ "Золото. Биржевой" (GOLD). Не более 5–7% портфеля — волатильны, зависят от мировых цен.',
+       '📌 Муниципальные и корпоративные облигации в связке — диверсификация внутри долговой части. ОФЗ даёт базу, корпоративные добавляют доходность, муниципальные (Москва, Санкт-Петербург) — промежуточный вариант. Ребалансировка раз в квартал по срокам погашения помогает управлять дюрацией.'
+     ],
+     recs:[{icon:'🌍',head:'Диверсифицируйте по секторам',text:'Распределите акции между нефтегазом, финансами, IT и потребительским сектором — падение одного не обрушит весь портфель.'},{icon:'🏢',head:'Что входит в «Альтернативы» (10%)',text:'Это активы вне классических акций и облигаций: ЗПИФ недвижимости (рентный доход), БПИФ на товарные активы (нефть, металлы, защита от инфляции), структурные облигации с частичной защитой капитала. Они снижают общую волатильность портфеля.'},{icon:'📅',head:'Ребалансируйте ежеквартально',text:'При просадке акций на 10%+ докупайте, перенаправив купоны с облигаций. Не продавайте в панике — это главная ошибка инвестора.'},{icon:'🧩',head:'Инвестируйте регулярно (DCA)',text:'Фиксированная сумма каждый месяц автоматически снижает среднюю цену входа и убирает соблазн угадывать дно рынка.'}]},
+    {name:'Умеренно-агрессивный',tag:'АКТИВНЫЙ',desc:'Вы ориентируетесь на рост капитала и готовы терпеть значительные просадки. Долгий горизонт позволяет переждать волатильность.',badge:'rgba(13,31,60,.15)',bColor:'#162d52',minS:19,
+     alloc:[{l:'Акции',p:70},{l:'Облигации',p:10},{l:'Альтернативы',p:13},{l:'Драгметаллы',p:4},{l:'Кэш',p:3}],
+     breakdown:[
+       {cls:'1. Акции — 70%',p:70,color:'#0d1f3c',subs:[
+         {n:'Акции роста IT (Яндекс, Позитив, Астра, Циан)',p:35},
+         {n:'Акции малой и средней капитализации',p:20},
+         {n:'Дивидендные (Лукойл, Татнефть) — частично',p:10},
+         {n:'БПИФ на технологический сектор',p:5}]},
+       {cls:'2. Облигации — 10%',p:10,color:'#4a9fd4',subs:[
+         {n:'Корпоративные A+ (короткие, 1–2 года)',p:6},
+         {n:'Флоатеры (защита от роста ставки)',p:4}]},
+       {cls:'3. Альтернативы — 13%',p:13,color:'#c9a84c',subs:[
+         {n:'ЗПИФ венчурные / инфраструктурные',p:6},
+         {n:'ВДО — высокодоходные облигации (20%+)',p:5},
+         {n:'Структурные продукты (усл. защита)',p:2}]},
+       {cls:'4. Драгоценные металлы — 4%',p:4,color:'#e8c96a',subs:[
+         {n:'БПИФ на золото',p:2},
+         {n:'ОМС или покупка у брокера на бирже',p:2}]},
+       {cls:'5. Кэш — 3%',p:3,color:'#7bbee8',subs:[
+         {n:'БПИФ денежного рынка (буфер для докупки)',p:3}]}
+     ],
+     strats:[
+       '📌 Акции роста IT-сектора — компании с быстрым ростом выручки и высокой маржинальностью. Ключевые имена на Мосбирже: Яндекс (поиск, такси, облако, AI — крупнейшая IT-компания на Мосбирже), Позитив Технологии (кибербез, плановый рост отгрузок 30–40%), Астра (OS Astra Linux, монополия на гос. рынке), Циан (proptech). Требует горизонт 5+ лет.',
+       '📌 БПИФ на технологический сектор — фонды с концентрацией в IT и цифровых компаниях. Дают диверсификацию внутри сектора без выбора конкретных акций. Примеры: отраслевые БПИФ от Сбера, Т-Банка на технологические компании. Менее рискованно, чем ставка на одну бумагу, но коррелируют с общим рынком.',
+       '📌 Акции малой и средней капитализации (small & mid cap) — компании с рыночной кап. 5–100 млрд ₽. Потенциал роста выше, ликвидность ниже. Примеры: Softline (IT-дистрибуция), Группа Аренадата (базы данных), Diasoft (финтех-ПО). Высокий риск отдельной позиции — не более 5% на одну бумагу.',
+       '📌 ВДО (высокодоходные облигации) — облигации компаний малого и среднего бизнеса с рейтингом BB и ниже. Доходность 20–26% годовых, но риск дефолта значительно выше инвестиционного рейтинга. Примеры эмитентов: МФО, девелоперы 2-го эшелона, торговые сети. Диверсифицируйте минимум на 10–15 эмитентов. Не более 5% на одного.',
+       '📌 ЗПИФ венчурные и инфраструктурные — закрытые фонды, вкладывающие в стартапы, pre-IPO проекты или инфраструктуру. Доступны преимущественно квалифицированным инвесторам. Примеры: венчурные фонды АФК Система, фонды ВЭБ. Горизонт 5–7 лет, высокий потенциал, низкая ликвидность.',
+       '📌 Структурные продукты с условной защитой — банковские ноты с барьерными условиями. Например: «100% капитала + 80% роста индекса Мосбиржи, если он не падал ниже 50% от начального уровня». Выпускают Сбер, ВТБ, Газпромбанк, БКС. Важно внимательно читать проспект: барьеры, условия выплаты, кредитный риск эмитента.'
+     ],
+     recs:[{icon:'🚀',head:'Ставьте на акции роста',text:'IT-компании Мосбиржи (Яндекс, Позитив, Астра) растут быстрее рынка. Нужен горизонт 5+ лет — краткосрочная волатильность неизбежна.'},{icon:'🏗',head:'Что входит в «Альтернативы» (13%)',text:'ЗПИФ — закрытые паевые инвестиционные фонды венчурных и инфраструктурных проектов, дают доступ к проектам вне биржи. ВДО — высокодоходные облигации с доходностью 20%+. Оба инструмента повышают доходность, но несут повышенный риск.'},{icon:'📊',head:'Изучайте отчётность',text:'При активном управлении читайте квартальные отчёты компаний и следите за ключевыми метриками: выручка, EBITDA, долговая нагрузка.'},{icon:'📰',head:'Следите за решениями ЦБ РФ',text:'Ключевая ставка напрямую влияет на оценку акций. При снижении ставки акции роста, как правило, опережают весь рынок.'}]},
+    {name:'Агрессивный',tag:'МАКСИМАЛЬНЫЙ РОСТ',desc:'Максимальный рост — ваш приоритет. Вы опытный инвестор, готовый к высокой волатильности и длинному горизонту.',badge:'rgba(13,31,60,.2)',bColor:'#0d1f3c',minS:24,
+     alloc:[{l:'Акции',p:80},{l:'Альтернативы',p:12},{l:'IPO/ЦФА',p:5},{l:'Драгметаллы',p:2},{l:'Кэш',p:1}],
+     breakdown:[
+       {cls:'1. Акции — 80%',p:80,color:'#0d1f3c',subs:[
+         {n:'Акции роста (IT, биотех, цифровые сервисы)',p:50},
+         {n:'Акции малой капитализации (high growth)',p:20},
+         {n:'БПИФ на технологич. сектор Мосбиржи',p:10}]},
+       {cls:'2. Облигации — 0%',p:0,color:'#4a9fd4',subs:[
+         {n:'Нет — весь капитал работает в акциях и альтернативах',p:0}]},
+       {cls:'3. Альтернативы — 12%',p:12,color:'#c9a84c',subs:[
+         {n:'ЗПИФ венчурные / pre-IPO проекты',p:5},
+         {n:'ВДО с доходностью 22%+ (высокий риск)',p:4},
+         {n:'Фьючерсы / опционы (хеджирование позиций)',p:2},
+         {n:'IPO/SPO — первичные размещения на Мосбирже',p:1}]},
+       {cls:'4. Драгоценные металлы — 2%',p:2,color:'#e8c96a',subs:[
+         {n:'БПИФ на золото или ОМС (минимальный хедж)',p:2}]},
+       {cls:'5. Кэш — 1%',p:1,color:'#7bbee8',subs:[
+         {n:'БПИФ денежного рынка (буфер для IPO и просадок)',p:1}]}
+     ],
+     strats:[
+       '📌 Концентрированный портфель акций роста — 15–20 позиций в лучших идеях: IT, кибербезопасность, финтех, e-commerce. Логика: лучшие идеи должны занимать крупные доли. Примеры: Яндекс, Позитив Технологии, Астра, Ozon, Т-Технологии (ТКС Холдинг), Headhunter. Ключевые метрики отбора: темп роста выручки >25% г/г, рентабельность EBITDA >20%.',
+       '📌 IPO и SPO на Мосбирже — участие в первичных и вторичных размещениях. При удачном выборе — 20–50% за первый год. Примеры удачных IPO: Астра (сильный рост после размещения), Позитив (сильный рост в первые годы), Диасофт. Риск: переоценённость при IPO, lock-up период для части инвесторов. Выделяйте не более 10–15% капитала на все IPO.',
+       '📌 ЗПИФ венчурных проектов и pre-IPO — фонды, инвестирующие в компании до их выхода на биржу. Потенциал кратного роста, горизонт 5–8 лет. Доступны квалифицированным инвесторам. Примеры: венчурное направление АФК Система, фонды Softline Ventures. Риск потери всей суммы по отдельной позиции — реален.',
+       '📌 ВДО с доходностью 22%+ — сверхдоходные облигации с рейтингом B и ниже. Подходят опытным инвесторам, готовым мониторить отчётность эмитентов. Обязательно: диверсификация 15–20 эмитентов, порция не более 3–5% на одного. Следите за коэффициентом долг/EBITDA и покрытием процентов. Дефолты реальны даже у рейтинговых эмитентов.',
+       '📌 Фьючерсы и опционы на срочном рынке Мосбиржи (FORTS) — производные инструменты для хеджирования и усиления позиций. Фьючерс на индекс Мосбиржи (MIX) хеджирует портфель от рыночного падения. Опционы — для построения нелинейных стратегий. Требуют глубокого понимания: плечо ускоряет как рост, так и убытки.',
+       '📌 ЦФА (цифровые финансовые активы) — новый класс, регулируемый ФЗ-259 с 2022 г. Выпускаются на платформах: Атомайз, СберЦФА, Мастерчейн. Примеры: ЦФА на золото, на денежные требования, на долю в бизнесе. Инструмент развивающийся: ликвидность ограничена, правовой режим формируется. Доля — не более 3–5% портфеля.'
+     ],
+     recs:[{icon:'💡',head:'Концентрируйте лучшие идеи',text:'15–20 позиций в компаниях с наибольшим потенциалом эффективнее широкой диверсификации. Но не более 15% на одну бумагу.'},{icon:'🏗',head:'Что входит в «Альтернативы» и «IPO/ЦФА»',text:'Альтернативы: ЗПИФ венчурных проектов, ВДО (22%+), фьючерсы/опционы для хеджирования. IPO/ЦФА: первичные размещения на Мосбирже (потенциал 20–50% за год) и цифровые финансовые активы (ЦФА) — новый класс, регулируемый ЦБ с 2022 г. Все несут высокий риск потери капитала.'},{icon:'⏱',head:'Не трогайте портфель на просадках',text:'Инвесторы, удержавшие позиции в 2022 году, восстановили капитал и вышли в плюс. Долгосрочный горизонт — ваше главное преимущество.'},{icon:'⚠️',head:'Контролируйте риск на позицию',text:'Агрессивная стратегия требует дисциплины: не более 15% в одну бумагу, стоп-лосс при просадке позиции более 30% — обязательное правило.'}]}
+];
+const horizonLabels=['до 1 года','1–3 года','3–7 лет','7–15 лет','более 15 лет'];
+let cur=0,ans={},chartInst=null,userName='';
+function t(k){return T[k]||'';}
+function getProfile(){const s=getScore();let p=profileDefs[0];for(let i=profileDefs.length-1;i>=0;i--){if(s>=profileDefs[i].minS){p=profileDefs[i];break;}}return p;}
+function buildWelcome(){const ws=document.getElementById('welcome-section');ws.style.display='block';document.getElementById('quiz-section').style.display='none';document.getElementById('result-section').style.display='none';ws.innerHTML=`<div class="welcome-hero"><div class="welcome-badge">⭐ ${t('welcomeTag')}</div><div class="welcome-title">${t('welcomeTitle')}<br><span>${t('welcomeTitle2')}</span></div><div class="welcome-sub">${t('welcomeSub')}</div><div class="welcome-chips"><span class="chip">📋 ${t('step1')}</span><span class="chip">⏱ ${t('step2')}</span><span class="chip">🎯 ${t('step3')}</span></div></div><div class="welcome-body"><div class="welcome-field-label">${t('welcomeLabel')}</div><input class="welcome-input" id="name-input" type="text" placeholder="${t('welcomePlaceholder')}" maxlength="40" value="${userName}" oninput="onNameInput(this.value)"><button class="welcome-start" id="start-btn" onclick="startQuiz()" ${userName.trim()?'':'disabled'}>${t('welcomeStart')}</button></div>`;setTimeout(()=>{const inp=document.getElementById('name-input');if(inp)inp.focus();},60);}
+function onNameInput(v){userName=v;const b=document.getElementById('start-btn');if(b)b.disabled=!v.trim();}
+function startQuiz(){if(!userName.trim())return;cur=0;ans={};document.getElementById('welcome-section').style.display='none';document.getElementById('quiz-section').style.display='block';buildQuiz();}
+function canProceed(){const q=questions[cur];if(q.type==='choice'||q.type==='scale')return ans[q.id]!==undefined&&ans[q.id]!==null;if(q.type==='number'){const v=parseFloat(ans[q.id]);return !isNaN(v)&&v>=q.min&&v<=q.max;}return false;}
+function syncNextBtn(){const b=document.getElementById('next-btn');if(b)b.disabled=!canProceed();}
+function syncChoiceHL(qid){document.querySelectorAll('.opt[data-qid="'+qid+'"]').forEach(el=>{el.classList.toggle('sel',ans[qid]!==undefined&&ans[qid]!==null&&Number(ans[qid])===Number(el.dataset.v));});}
+function syncScaleHL(qid){document.querySelectorAll('.scale-btn[data-qid="'+qid+'"]').forEach(el=>{el.classList.toggle('sel',ans[qid]!==undefined&&ans[qid]!==null&&Number(ans[qid])===Number(el.dataset.v));});}
+function selectChoice(qid,v){ans[qid]=v;syncChoiceHL(qid);syncNextBtn();}
+function selectScale(qid,v){ans[qid]=v;syncScaleHL(qid);syncNextBtn();}
+function setNum(qid,val){ans[qid]=val;syncNextBtn();}
+function goNext(){if(!canProceed())return;cur++;buildQuiz();}
+function goBack(){if(cur>0){cur--;buildQuiz();}}
+function getScore(){let s=0;questions.forEach(q=>{const v=ans[q.id];if(v===undefined||v===null||v==='')return;if(q.type==='choice')s+=Number(v);else if(q.type==='scale'){const pts=Math.round((Number(v)-1)/9*3);s+=(q.id==='liquidity')?-pts:pts;}else if(q.id==='age'){const a=parseInt(v);if(a<35)s+=3;else if(a<50)s+=2;else if(a<65)s+=1;}});return Math.max(0,s);}
+function buildQuiz(){
+  if(chartInst){chartInst.destroy();chartInst=null;}
+  const qsec=document.getElementById('quiz-section'),rsec=document.getElementById('result-section');
+  if(cur>=questions.length){qsec.style.display='none';rsec.style.display='block';buildResult(rsec);return;}
+  rsec.style.display='none';qsec.style.display='block';
+  const q=questions[cur],pct=Math.round((cur/questions.length)*100),isLast=cur===questions.length-1;
+  let bodyHTML='';
+  if(q.type==='choice'){bodyHTML=`<div class="opts">${q.options.map(o=>{const isSel=ans[q.id]!==undefined&&ans[q.id]!==null&&Number(ans[q.id])===Number(o.v);return `<button class="opt${isSel?' sel':''}" data-qid="${q.id}" data-v="${o.v}" onclick="selectChoice('${q.id}',${o.v})">${o.t}</button>`;}).join('')}</div>`;}
+  else if(q.type==='scale'){bodyHTML=`<div class="scale-wrap"><div class="scale-labels"><span>${q.scaleMin||''}</span><span>${q.scaleMax||''}</span></div><div class="scale-btns">${[1,2,3,4,5,6,7,8,9,10].map(n=>{const isSel=ans[q.id]!==undefined&&ans[q.id]!==null&&Number(ans[q.id])===n;return `<button class="scale-btn${isSel?' sel':''}" data-qid="${q.id}" data-v="${n}" onclick="selectScale('${q.id}',${n})">${n}</button>`;}).join('')}</div></div>`;}
+  else{bodyHTML=`<div class="num-wrap"><label>${q.label}</label><input type="number" min="${q.min}" max="${q.max}" placeholder="${q.min}–${q.max}" value="${ans[q.id]||''}" oninput="setNum('${q.id}',this.value)"></div>`;}
+  qsec.innerHTML=`<div class="content"><div class="progress-wrap"><div class="progress-header"><span class="progress-label">${t('qLabel')}</span><span class="progress-count">${cur+1} / ${questions.length}</span></div><div class="progress-bg"><div class="progress-fill" style="width:${pct}%"></div></div></div><div class="qcard"><div class="qnum">${t('qLabel')} ${cur+1}</div>${q.sub?`<div class="qsub">${q.sub}</div>`:''}<div class="qtext">${q.text}</div>${bodyHTML}</div><div class="nav"><button class="btn-back" onclick="goBack()" ${cur===0?'disabled':''}>${t('back')}</button><button class="btn-next" id="next-btn" onclick="goNext()" ${canProceed()?'':'disabled'}>${isLast?t('finish'):t('next')}</button></div></div>`;
+}
+function buildResult(container){
+  const score=getScore(),pct=Math.round((score/40)*100),profile=getProfile();
+  const age=ans['age']||'—',hIdx=ans['horizon'];
+  const hLabel=(hIdx!==undefined&&hIdx!==null)?horizonLabels[Number(hIdx)]:'—';
+  const alloc=profile.alloc.filter(a=>a.p>0);
+  const legendHTML=alloc.map((a,i)=>`<div class="legend-item"><div class="legend-dot" style="background:${COLORS[i%COLORS.length]}"></div><span class="legend-txt">${a.l}</span><span class="legend-pct">${a.p}%</span></div>`).join('');
+  const recsHTML=profile.recs.map(r=>`<div class="rec-item"><div class="rec-icon">${r.icon}</div><div><div class="rec-head">${r.head}</div><div class="rec-text">${r.text}</div></div></div>`).join('');
+  const breakdownHTML=profile.breakdown.map(cls=>`
+    <div class="bk-class">
+      <div class="bk-header">
+        <div class="bk-dot" style="background:${cls.color}"></div>
+        <span class="bk-class-name">${cls.cls}</span>
+        <span class="bk-class-pct">${cls.p}%</span>
+      </div>
+      <div class="bk-rows">${cls.subs.map(s=>`
+        <div class="bk-row">
+          <span class="bk-sub-name">${s.n}</span>
+          <div class="bk-bar-wrap"><div class="bk-bar" style="width:${Math.min(100,Math.round(s.p/cls.p*100))}%"></div></div>
+          <span class="bk-sub-pct">${s.p}%</span>
+        </div>`).join('')}
+      </div>
+    </div>`).join('');
+  container.innerHTML=`<div class="res-hero"><div class="res-greeting-line">${t('greetingPrefix')} ${userName}</div><div class="res-profile-name">${profile.name} ${t('investor')}</div><div class="res-badge-row"><span class="res-badge">${profile.tag}</span></div></div><div class="res-body"><div class="res-desc">${profile.desc}</div><div class="section-head">${t('params')}</div><div class="params-grid"><div class="param-item"><div class="param-key">${t('age')}</div><div class="param-val">${age} ${t('years')}</div></div><div class="param-item"><div class="param-key">${t('horizon')}</div><div class="param-val">${hLabel}</div></div></div><div class="section-head">${t('scoreLbl')}</div><div class="risk-meter-wrap"><div class="meter-labels"><span>${t('lowRisk')}</span><span>${t('highRisk')}</span></div><div class="meter-track"><div class="meter-pin" style="left:${Math.min(95,Math.max(5,pct))}%"></div></div><div class="meter-pct">${pct}%</div></div><div class="section-head">${t('allocation')}</div><div class="chart-block"><div class="chart-wrap"><canvas id="donut-chart" width="160" height="160"></canvas><div class="chart-center"><div class="chart-center-pct">${alloc[0].p}%</div><div class="chart-center-lbl">${alloc[0].l}</div></div></div><div class="legend">${legendHTML}</div></div><div class="breakdown-wrap">${breakdownHTML}</div><div class="section-head">${t('tools')}</div><ul class="strat-list">${profile.strats.map(s=>`<li>${s}</li>`).join('')}</ul><div class="section-head">${t('recTitle')}</div><div class="rec-block">${recsHTML}</div><div class="warn-box">⚠️ ${t('disclaimer')}</div></div><div class="action-btns"><button class="download-btn" onclick="downloadResult()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${t('downloadPdf')}</button><button class="restart-btn" onclick="restart()">${t('restartBtn')}</button></div>`;
+  setTimeout(()=>{const canvas=document.getElementById('donut-chart');if(!canvas)return;if(chartInst)chartInst.destroy();chartInst=new Chart(canvas,{type:'doughnut',data:{labels:alloc.map(a=>a.l),datasets:[{data:alloc.map(a=>a.p),backgroundColor:alloc.map((_,i)=>COLORS[i%COLORS.length]),borderWidth:0,hoverOffset:6}]},options:{cutout:'68%',animation:{duration:900,easing:'easeInOutQuart'},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+ctx.label+': '+ctx.parsed+'%'},backgroundColor:'#0d1f3c',titleColor:'#e8c96a',bodyColor:'#ffffff',padding:10,cornerRadius:8}}}});},120);
+}
+function downloadResult(){
+  const profile=getProfile(),score=getScore(),pct=Math.round((score/40)*100);
+  const age=ans['age']||'—',hIdx=ans['horizon'];
+  const hLabel=(hIdx!==undefined&&hIdx!==null)?horizonLabels[Number(hIdx)]:'—';
+  const alloc=profile.alloc.filter(a=>a.p>0);
+  const today=new Date().toLocaleDateString('ru-RU',{year:'numeric',month:'long',day:'numeric'});
+  const recsHTML=profile.recs.map(r=>`<tr><td style="padding:10px 8px;vertical-align:top;font-size:20px">${r.icon}</td><td style="padding:10px 8px"><strong style="color:#0d1f3c">${r.head}</strong><br><span style="color:#4a6fa5;font-size:13px">${r.text}</span></td></tr>`).join('');
+  const stratRows=profile.strats.map(s=>`<li style="margin-bottom:6px;color:#2a4a7f;font-size:14px;padding:6px 0">${s}</li>`).join('');
+  const allocRows=alloc.map(a=>`<div style="flex:1;min-width:80px;background:#fff;border:1px solid #b8daf5;border-radius:10px;padding:12px 8px;text-align:center"><div style="font-size:22px;font-weight:700;color:#0d1f3c">${a.p}%</div><div style="font-size:12px;color:#4a9fd4;margin-top:2px">${a.l}</div></div>`).join('');
+  const html=`<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><title>Риск-профиль — ${userName}</title>
+  <style>*{box-sizing:border-box;margin:0;padding:0}body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#eef6fd;color:#0d1f3c}.header{background:linear-gradient(135deg,#0d1f3c,#162d52);padding:2rem 2.5rem;border-bottom:3px solid #c9a84c}.tag{display:inline-block;border-radius:99px;padding:3px 14px;font-size:11px;font-weight:700;color:#e8c96a;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}.name{font-size:26px;font-weight:700;color:#fff;margin-bottom:4px}.greeting{font-size:13px;color:#e8c96a;margin-bottom:6px}.date{font-size:12px;color:rgba(255,255,255,.5)}.body{padding:2rem 2.5rem}.desc{background:#fff;border-left:4px solid #c9a84c;border-radius:0 10px 10px 0;padding:14px 16px;font-size:14px;color:#2a4a7f;line-height:1.7;margin-bottom:1.5rem}.sh{font-size:11px;font-weight:700;color:#c9a84c;letter-spacing:.1em;text-transform:uppercase;margin:1.5rem 0 .75rem;padding-bottom:6px;border-bottom:1px solid #b8daf5}.params{display:flex;gap:12px;margin-bottom:1rem}.pi{flex:1;background:#fff;border:1px solid #b8daf5;border-radius:10px;padding:12px}.pk{font-size:10px;color:#4a6fa5;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}.pv{font-size:15px;font-weight:700;color:#0d1f3c}.meter-box{background:#fff;border:1px solid #b8daf5;border-radius:12px;padding:16px 20px}.meter-bar{height:10px;background:linear-gradient(90deg,#5dcaa5,#fac775,#f09595,#e24b4a);border-radius:99px;margin:8px 0}.meter-lbs{display:flex;justify-content:space-between;font-size:11px;color:#4a6fa5}.alloc{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:.5rem}.warn{background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.25);border-radius:10px;padding:12px 14px;font-size:12px;color:#4a6fa5;line-height:1.6;margin-top:1.5rem}@media print{body{background:#fff}.header{-webkit-print-color-adjust:exact;print-color-adjust:exact}.meter-bar{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>
+  <div class="header"><div class="greeting">${t('greetingPrefix')} ${userName}</div><div class="tag">${profile.tag}</div><div class="name">${profile.name} ${t('investor')}</div><div class="date">${today}</div></div>
+  <div class="body"><div class="desc">${profile.desc}</div><div class="sh">${t('params')}</div><div class="params"><div class="pi"><div class="pk">${t('age')}</div><div class="pv">${age} ${t('years')}</div></div><div class="pi"><div class="pk">${t('horizon')}</div><div class="pv">${hLabel}</div></div></div><div class="sh">${t('scoreLbl')}</div><div class="meter-box"><div class="meter-lbs"><span>${t('lowRisk')}</span><span>${t('highRisk')}</span></div><div class="meter-bar"></div><div style="text-align:center;font-size:24px;font-weight:700;color:#0d1f3c;margin-top:8px">${pct}%</div></div><div class="sh">${t('allocation')}</div><div class="alloc">${allocRows}</div><div class="sh">${t('tools')}</div><ul style="padding-left:1.2rem;display:flex;flex-direction:column;gap:4px">${stratRows}</ul><div class="sh">${t('recTitle')}</div><table style="width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #b8daf5">${recsHTML}</table><div class="warn">⚠️ ${t('disclaimer')}</div></div></body></html>`;
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`risk-profile-${userName.replace(/\s+/g,'-')}.html`;a.click();URL.revokeObjectURL(url);
+}
+function restart(){cur=0;ans={};userName='';if(chartInst){chartInst.destroy();chartInst=null;}document.getElementById('result-section').style.display='none';document.getElementById('quiz-section').style.display='none';buildWelcome();}
+buildWelcome();
+</script>
+</body>
+</html>
